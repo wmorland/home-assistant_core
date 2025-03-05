@@ -18,6 +18,7 @@ _LOGGER = getLogger(__name__)
 PLATFORMS: list[Platform] = [
     Platform.BUTTON,
     Platform.CLIMATE,
+    Platform.HUMIDIFIER,
     Platform.LOCK,
     Platform.SENSOR,
     Platform.SWITCH,
@@ -31,6 +32,7 @@ class SwitchbotDevices:
 
     buttons: list[Device] = field(default_factory=list)
     climates: list[Remote] = field(default_factory=list)
+    humidifiers: list[Device] = field(default_factory=list)
     switches: list[Device | Remote] = field(default_factory=list)
     sensors: list[Device] = field(default_factory=list)
     vacuums: list[Device] = field(default_factory=list)
@@ -150,6 +152,12 @@ async def make_device_data(
                 devices_data.buttons.append((device, coordinator))
             else:
                 devices_data.switches.append((device, coordinator))
+
+    if isinstance(device, Device) and device.device_type in ["Humidifier2"]:
+        coordinator = await coordinator_for_device(
+            hass, entry, api, device, coordinators_by_id
+        )
+        devices_data.humidifiers.append((device, coordinator))
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
