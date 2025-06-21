@@ -22,10 +22,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.service_info.zeroconf import (
-    ATTR_PROPERTIES_ID,
-    ZeroconfServiceInfo,
-)
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 from .const import (
     CONF_FALLBACK,
@@ -74,6 +71,9 @@ class TadoConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Error while initiating Tado")
                 return self.async_abort(reason="cannot_connect")
             assert self.tado is not None
+            tado_device_url = self.tado.device_verification_url()
+            user_code = URL(tado_device_url).query["user_code"]
+            _LOGGER.debug("tado_device_url: %s Code: %s", tado_device_url, user_code)
 
         async def _wait_for_login() -> None:
             """Wait for the user to login."""
@@ -105,10 +105,6 @@ class TadoConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             return self.async_show_progress_done(next_step_id="finish_login")
 
-        tado_device_url = self.tado.device_verification_url()
-        user_code = URL(tado_device_url).query["user_code"]
-        _LOGGER.debug("tado_device_url: %s Code: %s", tado_device_url, user_code)
-        
         return self.async_show_progress(
             step_id="user",
             progress_action="wait_for_device",
@@ -166,12 +162,16 @@ class TadoConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: ZeroconfServiceInfo
     ) -> ConfigFlowResult:
         """Handle HomeKit discovery."""
-        self._async_abort_entries_match()
-        properties = {
-            key.lower(): value for key, value in discovery_info.properties.items()
-        }
-        await self.async_set_unique_id(properties[ATTR_PROPERTIES_ID])
-        self._abort_if_unique_id_configured()
+        await self._async_handle_discovery_without_unique_id()
+        return await self.async_step_homekit_confirm()
+
+    async def async_step_homekit_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Prepare for Homekit."""
+        if user_input is None:
+            return self.async_show_form(step_id="homekit_confirm")
+
         return await self.async_step_user()
 
     @staticmethod

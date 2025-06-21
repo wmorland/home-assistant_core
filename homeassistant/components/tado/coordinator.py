@@ -32,7 +32,7 @@ _LOGGER = logging.getLogger(__name__)
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=4)
 SCAN_INTERVAL = timedelta(minutes=5)
-SCAN_MOBILE_DEVICE_INTERVAL = timedelta(seconds=30)
+SCAN_MOBILE_DEVICE_INTERVAL = timedelta(minutes=5)
 
 
 class TadoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict]]):
@@ -103,7 +103,7 @@ class TadoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict]]):
         tado_home = tado_home_call["homes"][0]
         self.home_id = tado_home["id"]
         self.home_name = tado_home["name"]
-        self.is_x = self._tado._http.is_x_line  # very bad™️
+        self.is_x = self._tado._http.is_x_line  # very bad™️  # noqa: SLF001
         [
             device.update(is_x=self.is_x)
             for device in self.devices
@@ -185,7 +185,7 @@ class TadoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, dict]]):
                         device[TEMP_OFFSET] = self._tado.get_device_info(
                             device_short_serial_no, TEMP_OFFSET
                         )
-                except RequestException as err:  # TODO: need to remove?
+                except RequestException as err:
                     _LOGGER.error(
                         "Error updating device %s: %s", device_short_serial_no, err
                     )
